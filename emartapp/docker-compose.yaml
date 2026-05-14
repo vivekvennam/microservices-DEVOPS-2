@@ -1,0 +1,155 @@
+version: "3.9"
+
+services:
+
+  # ---------- ANGULAR FRONTEND ----------
+  client:
+
+    build:
+      context: ./client
+
+    container_name: client
+
+    restart: unless-stopped
+
+    depends_on:
+      - api
+      - webapi
+
+    networks:
+      - emart-network
+
+
+
+  # ---------- NODE API ----------
+  api:
+
+    build:
+      context: ./nodeapi
+
+    container_name: api
+
+    restart: unless-stopped
+
+    environment:
+      PORT: 5000
+
+    depends_on:
+      - emongo
+
+    networks:
+      - emart-network
+
+
+
+  # ---------- JAVA API ----------
+  webapi:
+
+    build:
+      context: ./javaapi
+
+    container_name: webapi
+
+    restart: unless-stopped
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://emartdb:3306/books?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+
+      SPRING_DATASOURCE_USERNAME: root
+
+      SPRING_DATASOURCE_PASSWORD: emartdbpass
+
+    depends_on:
+      - emartdb
+
+    networks:
+      - emart-network
+
+
+
+  # ---------- NGINX GATEWAY ----------
+  nginx:
+
+    image: nginx:1.27-alpine
+
+    container_name: nginx
+
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+
+    depends_on:
+      - client
+      - api
+      - webapi
+
+    networks:
+      - emart-network
+
+
+
+  # ---------- MONGODB ----------
+  emongo:
+
+    image: mongo:7
+
+    container_name: emongo
+
+    restart: unless-stopped
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongo-data:/data/db
+
+    environment:
+      MONGO_INITDB_DATABASE: epoc
+
+    networks:
+      - emart-network
+
+
+
+  # ---------- MYSQL ----------
+  emartdb:
+
+    image: mysql:8.4
+
+    container_name: emartdb
+
+    restart: unless-stopped
+
+    ports:
+      - "3306:3306"
+
+    environment:
+      MYSQL_ROOT_PASSWORD: emartdbpass
+
+      MYSQL_DATABASE: books
+
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+    networks:
+      - emart-network
+
+
+
+# ---------- NETWORK ----------
+networks:
+
+  emart-network:
+
+
+
+# ---------- VOLUMES ----------
+volumes:
+
+  mongo-data:
+
+  mysql-data:
