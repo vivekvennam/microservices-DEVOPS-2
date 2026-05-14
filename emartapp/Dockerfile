@@ -1,18 +1,37 @@
-FROM node:14 AS ui-build
-WORKDIR /usr/src/app
-COPY client/ ./client/
-RUN cd client && npm install && npm run build
+FROM node:20 AS ui-build
 
-FROM node:14 AS server-build
 WORKDIR /usr/src/app
-COPY nodeapi/ ./nodeapi/
-RUN cd nodeapi && npm install
 
-FROM node:14
-WORKDIR /usr/src/app/
+COPY client/package*.json ./client/
+WORKDIR /usr/src/app/client
+
+RUN npm install
+
+COPY client/ .
+
+RUN npm run build
+
+
+FROM node:20 AS server-build
+
+WORKDIR /usr/src/app
+
+COPY nodeapi/package*.json ./nodeapi/
+WORKDIR /usr/src/app/nodeapi
+
+RUN npm install
+
+COPY nodeapi/ .
+
+
+FROM node:20
+
+WORKDIR /usr/src/app
+
 COPY --from=server-build /usr/src/app/nodeapi/ ./
 COPY --from=ui-build /usr/src/app/client/dist ./client/dist
-RUN ls
+
 EXPOSE 4200
 EXPOSE 5000
-CMD ["/bin/sh", "-c", "cd /usr/src/app/ && npm start"]
+
+CMD ["npm", "start"]
